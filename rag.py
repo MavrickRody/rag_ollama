@@ -4,9 +4,10 @@ Handles retrieval and question-answering chain.
 """
 from typing import Optional, Dict, List
 from langchain_community.llms import Ollama
-from langchain.chains import RetrievalQA
 from langchain_core.prompts import PromptTemplate
 from langchain_community.vectorstores import Chroma
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
 
 
 # Hallucination-safe prompt template
@@ -55,16 +56,25 @@ class RAGEngine:
             input_variables=["context", "question"]
         )
         
-        # Create retrieval chain
-        self.qa_chain = RetrievalQA.from_chain_type(
-            llm=self.llm,
-            chain_type="stuff",
-            retriever=self.vectorstore.as_retriever(
-                search_kwargs={"k": self.retrieval_k}
-            ),
-            return_source_documents=True,
-            chain_type_kwargs={"prompt": self.prompt}
+        # Create retriever
+        self.retriever = self.vectorstore.as_retriever(
+            search_kwargs={"k": self.retrieval_k}
         )
+        
+        # Create RAG chain using LCEL (LangChain Expression Language)
+        self.qa_chain = (
+            {
+                "context": self.retriever | self._format_docs,
+                "question": RunnablePassthrough()
+            }
+            | self.prompt
+            | self.llm
+            | StrOutputParser()
+        )
+    
+    def _format_docs(self, docs):
+        """Format retrieved documents into a single string."""
+        return "\n\n".join(doc.page_content for doc in docs)
     
     def query(self, question: str) -> Dict:
         """
@@ -75,33 +85,33 @@ class RAGEngine:
             
         Returns:
             Dictionary with answer and source documents
-            
-        Note:
-            The invoke method expects a dict with 'query' key for the question.
         """
         try:
-            result = self.qa_chain.invoke({"query": question})
+            # Get the answer
+            answer = self.qa_chain.invoke(question)
+            
+            # Retrieve source documents separately for citations
+            source_docs = self.retriever.invoke(question)
             
             # Extract sources
             sources = []
-            if "source_documents" in result:
-                seen_sources = set()
-                for doc in result["source_documents"]:
-                    source_file = doc.metadata.get("source_file", "Unknown")
-                    page = doc.metadata.get("page", None)
-                    
-                    # Create source string
-                    if page is not None:
-                        source_str = f"{source_file} (page {page + 1})"
-                    else:
-                        source_str = source_file
-                    
-                    if source_str not in seen_sources:
-                        sources.append(source_str)
-                        seen_sources.add(source_str)
+            seen_sources = set()
+            for doc in source_docs:
+                source_file = doc.metadata.get("source_file", "Unknown")
+                page = doc.metadata.get("page", None)
+                
+                # Create source string
+                if page is not None:
+                    source_str = f"{source_file} (page {page + 1})"
+                else:
+                    source_str = source_file
+                
+                if source_str not in seen_sources:
+                    sources.append(source_str)
+                    seen_sources.add(source_str)
             
             return {
-                "answer": result.get("result", "No answer generated."),
+                "answer": answer if answer else "No answer generated.",
                 "sources": sources,
                 "success": True
             }
@@ -124,12 +134,12 @@ class RAGEngine:
         self.llm = Ollama(model=model_name)
         
         # Recreate the chain with new model
-        self.qa_chain = RetrievalQA.from_chain_type(
-            llm=self.llm,
-            chain_type="stuff",
-            retriever=self.vectorstore.as_retriever(
-                search_kwargs={"k": self.retrieval_k}
-            ),
-            return_source_documents=True,
-            chain_type_kwargs={"prompt": self.prompt}
+        self.qa_chain = (
+            {
+                "context": self.retriever | self._format_docs,
+                "question": RunnablePassthrough()
+            }
+            | self.prompt
+            | self.llm
+            | StrOutputParser()
         )
