@@ -10,7 +10,7 @@ from langchain_community.document_loaders import (
     CSVLoader,
     UnstructuredExcelLoader,
 )
-from langchain.schema import Document
+from langchain_core.documents import Document
 
 
 def load_pdf(file_path: str) -> List[Document]:

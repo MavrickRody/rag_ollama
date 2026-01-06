@@ -4,8 +4,8 @@ Handles retrieval and question-answering chain.
 """
 from typing import Optional, Dict, List
 from langchain_community.llms import Ollama
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
+from langchain.chains.retrieval_qa.base import RetrievalQA
+from langchain_core.prompts import PromptTemplate
 from langchain_community.vectorstores import Chroma
 
 
