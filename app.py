@@ -143,7 +143,11 @@ def sidebar():
         st.session_state.rag_engine = None
         st.session_state.messages = []
         st.sidebar.success("Database cleared!")
-        st.rerun()
+        # Use st.rerun() for Streamlit >= 1.27, fallback to experimental_rerun
+        try:
+            st.rerun()
+        except AttributeError:
+            st.experimental_rerun()
     
     st.sidebar.markdown("---")
     

@@ -3,6 +3,7 @@ Open-source document loaders.
 All loaders use OSS-compliant libraries only.
 """
 from typing import List
+from pathlib import Path
 from langchain_community.document_loaders import (
     PyPDFLoader,
     Docx2txtLoader,
@@ -81,7 +82,7 @@ def load_document(file_path: str) -> List[Document]:
     Raises:
         ValueError: If file type is not supported
     """
-    extension = file_path.lower().split('.')[-1]
+    extension = Path(file_path).suffix.lower().lstrip('.')
     
     loaders = {
         'pdf': load_pdf,

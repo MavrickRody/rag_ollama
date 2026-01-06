@@ -4,6 +4,7 @@ Handles document parsing, chunking, and vector storage.
 """
 import os
 import json
+import shutil
 from typing import List, Optional
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -174,7 +175,6 @@ class DocumentIngestor:
         
         # Clear persisted files
         if os.path.exists(self.persist_directory):
-            import shutil
             try:
                 shutil.rmtree(self.persist_directory)
             except Exception:

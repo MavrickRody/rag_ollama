@@ -75,6 +75,9 @@ class RAGEngine:
             
         Returns:
             Dictionary with answer and source documents
+            
+        Note:
+            The invoke method expects a dict with 'query' key for the question.
         """
         try:
             result = self.qa_chain.invoke({"query": question})
