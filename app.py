@@ -27,6 +27,11 @@ CHROMA_DIR = "./data/chroma"
 SUPPORTED_EXTENSIONS = [".pdf", ".docx", ".csv", ".xlsx", ".xls"]
 OSS_MODELS = ["llama3", "mistral", "qwen2.5", "phi-3"]
 
+# Application modes
+MODE_RAG = "RAG Mode"
+MODE_CHAT_ONLY = "Chat Only"
+MODE_AI_COUNCIL = "AI Council"
+
 # Ensure directories exist
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(CHROMA_DIR, exist_ok=True)
@@ -50,7 +55,7 @@ def initialize_session_state():
     
     # New session state for modes
     if "app_mode" not in st.session_state:
-        st.session_state.app_mode = "RAG Mode"  # Options: "RAG Mode", "Chat Only", "AI Council"
+        st.session_state.app_mode = MODE_RAG  # Options: MODE_RAG, MODE_CHAT_ONLY, MODE_AI_COUNCIL
     
     if "chat_only_llm" not in st.session_state:
         st.session_state.chat_only_llm = None
@@ -91,8 +96,8 @@ def sidebar():
     st.sidebar.subheader("⚙️ Application Mode")
     app_mode = st.sidebar.radio(
         "Select Mode",
-        ["RAG Mode", "Chat Only", "AI Council"],
-        index=["RAG Mode", "Chat Only", "AI Council"].index(st.session_state.app_mode)
+        [MODE_RAG, MODE_CHAT_ONLY, MODE_AI_COUNCIL],
+        index=[MODE_RAG, MODE_CHAT_ONLY, MODE_AI_COUNCIL].index(st.session_state.app_mode)
     )
     
     # Update mode if changed
@@ -104,7 +109,7 @@ def sidebar():
     st.sidebar.markdown("---")
     
     # Show different controls based on mode
-    if app_mode == "AI Council":
+    if app_mode == MODE_AI_COUNCIL:
         # Council configuration
         st.sidebar.subheader("🏛️ Council Configuration")
         
@@ -130,7 +135,7 @@ def sidebar():
         st.sidebar.markdown("---")
         
         # Initialize council if members changed
-        if st.session_state.app_mode == "AI Council":
+        if st.session_state.app_mode == MODE_AI_COUNCIL:
             has_docs = st.session_state.ingestor.has_documents()
             vectorstore = st.session_state.ingestor.get_vectorstore() if has_docs else None
             
@@ -160,13 +165,14 @@ def sidebar():
             st.sidebar.success(f"Model updated to {selected_model}")
         
         # Initialize chat-only LLM if in Chat Only mode
-        if app_mode == "Chat Only" and st.session_state.chat_only_llm is None:
-            st.session_state.chat_only_llm = Ollama(model=st.session_state.selected_model)
+        if app_mode == MODE_CHAT_ONLY:
+            if st.session_state.chat_only_llm is None:
+                st.session_state.chat_only_llm = Ollama(model=st.session_state.selected_model)
         
         st.sidebar.markdown("---")
     
     # File uploader (shown for RAG Mode and AI Council)
-    if app_mode in ["RAG Mode", "AI Council"]:
+    if app_mode in [MODE_RAG, MODE_AI_COUNCIL]:
         st.sidebar.subheader("📁 Upload Documents")
         uploaded_files = st.sidebar.file_uploader(
             "Choose files",
@@ -212,12 +218,12 @@ def sidebar():
                     # Initialize RAG engine if we have documents (for RAG mode)
                     if st.session_state.ingestor.has_documents():
                         vectorstore = st.session_state.ingestor.get_vectorstore()
-                        if app_mode == "RAG Mode":
+                        if app_mode == MODE_RAG:
                             st.session_state.rag_engine = RAGEngine(
                                 vectorstore,
                                 model_name=st.session_state.selected_model
                             )
-                        elif app_mode == "AI Council" and len(st.session_state.council_members) >= 2:
+                        elif app_mode == MODE_AI_COUNCIL and len(st.session_state.council_members) >= 2:
                             st.session_state.ai_council = AICouncil(
                                 model_names=st.session_state.council_members,
                                 vectorstore=vectorstore
@@ -465,11 +471,11 @@ def main():
     sidebar()
     
     # Route to appropriate interface based on mode
-    if st.session_state.app_mode == "RAG Mode":
+    if st.session_state.app_mode == MODE_RAG:
         main_chat_interface()
-    elif st.session_state.app_mode == "Chat Only":
+    elif st.session_state.app_mode == MODE_CHAT_ONLY:
         chat_only_interface()
-    elif st.session_state.app_mode == "AI Council":
+    elif st.session_state.app_mode == MODE_AI_COUNCIL:
         ai_council_interface()
 
 

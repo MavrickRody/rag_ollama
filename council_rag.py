@@ -70,7 +70,8 @@ class AICouncil:
         self,
         model_names: List[str],
         vectorstore: Optional[Chroma] = None,
-        retrieval_k: int = 4
+        retrieval_k: int = 4,
+        consensus_model: Optional[str] = None
     ):
         """
         Initialize the AI Council.
@@ -79,17 +80,16 @@ class AICouncil:
             model_names: List of Ollama model names for council members
             vectorstore: Optional ChromaDB vector store for RAG mode
             retrieval_k: Number of documents to retrieve in RAG mode
+            consensus_model: Model to use for consensus generation (defaults to first model)
         """
         self.model_names = model_names
         self.vectorstore = vectorstore
         self.retrieval_k = retrieval_k
         self.use_rag = vectorstore is not None
+        self.consensus_model = consensus_model or model_names[0]
         
-        # Initialize LLMs for each council member
-        self.llms = {
-            model_name: Ollama(model=model_name)
-            for model_name in model_names
-        }
+        # Initialize LLMs lazily
+        self._llms = {}
         
         # Create retriever if using RAG
         self.retriever = None
@@ -97,6 +97,12 @@ class AICouncil:
             self.retriever = self.vectorstore.as_retriever(
                 search_kwargs={"k": self.retrieval_k}
             )
+    
+    def _get_llm(self, model_name: str):
+        """Get or create LLM instance for a model (lazy initialization)."""
+        if model_name not in self._llms:
+            self._llms[model_name] = Ollama(model=model_name)
+        return self._llms[model_name]
     
     def _format_docs(self, docs):
         """Format retrieved documents into a single string."""
@@ -114,7 +120,7 @@ class AICouncil:
         Returns:
             Model's response
         """
-        llm = self.llms[model_name]
+        llm = self._get_llm(model_name)
         
         if self.use_rag and context:
             prompt = PromptTemplate(
@@ -148,7 +154,7 @@ class AICouncil:
         Returns:
             Model's refined response
         """
-        llm = self.llms[model_name]
+        llm = self._get_llm(model_name)
         prompt = PromptTemplate(
             template=COUNCIL_DISCUSSION_PROMPT,
             input_variables=["question", "other_responses"]
@@ -170,8 +176,8 @@ class AICouncil:
         Returns:
             Consensus summary
         """
-        # Use the first model to generate consensus
-        llm = self.llms[self.model_names[0]]
+        # Use the configured consensus model
+        llm = self._get_llm(self.consensus_model)
         prompt = PromptTemplate(
             template=CONSENSUS_PROMPT,
             input_variables=["question", "all_responses"]
@@ -278,11 +284,27 @@ class AICouncil:
                 "num_members": len(self.model_names)
             }
             
+        except ConnectionError as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "discussion_history": [],
+                "consensus": f"Connection error: Could not connect to Ollama. Please ensure Ollama is running.",
+                "sources": []
+            }
+        except ValueError as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "discussion_history": [],
+                "consensus": f"Invalid input: {str(e)}",
+                "sources": []
+            }
         except Exception as e:
             return {
                 "success": False,
                 "error": str(e),
                 "discussion_history": [],
-                "consensus": f"Error during council discussion: {str(e)}",
+                "consensus": f"Error during council discussion: {str(e)}. Please check that all models are available in Ollama.",
                 "sources": []
             }
