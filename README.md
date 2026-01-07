@@ -4,6 +4,7 @@ A fully open-source, offline-capable Retrieval-Augmented Generation (RAG) applic
 
 ## 🌟 Features
 
+### Core Features
 - **100% Open-Source**: All components use OSI-approved licenses
 - **Offline-Capable**: No internet connection required after initial setup
 - **Privacy-First**: All data stays on your machine
@@ -11,6 +12,19 @@ A fully open-source, offline-capable Retrieval-Augmented Generation (RAG) applic
 - **Smart Deduplication**: Avoids re-embedding identical files
 - **Source Citations**: Shows which documents answers come from
 - **Multiple Models**: Choose from llama3, mistral, qwen2.5, phi-3
+
+### New Features ✨
+- **Chat-Only Mode**: Chat directly with AI models without uploading documents
+  - No file upload required
+  - Direct conversation with selected Ollama model
+  - Maintains conversation history within session
+  
+- **AI Council**: Multi-model discussion and consensus
+  - Select multiple models to participate in discussions
+  - Each model provides independent responses
+  - Multi-round discussions where models can refine responses
+  - Consensus summary highlighting agreements and differences
+  - Works with both RAG mode (with documents) and chat-only mode
 
 ## 🔒 Open-Source Stack
 
@@ -76,18 +90,42 @@ A fully open-source, offline-capable Retrieval-Augmented Generation (RAG) applic
    streamlit run app.py
    ```
 
-2. **Upload documents**
-   - Use the sidebar to upload PDF, DOCX, CSV, or XLSX files
-   - Click "Ingest Documents" to process them
-   - Wait for confirmation messages
+2. **Select an application mode**
+   - **RAG Mode**: Traditional document Q&A with file uploads
+   - **Chat Only**: Direct conversation with AI without documents
+   - **AI Council**: Multi-model discussion and consensus
 
-3. **Chat with your documents**
-   - Type questions in the chat input
-   - Get answers based only on your uploaded documents
-   - View source citations for each answer
+### RAG Mode
+1. Use the sidebar to upload PDF, DOCX, CSV, or XLSX files
+2. Click "Ingest Documents" to process them
+3. Wait for confirmation messages
+4. Type questions in the chat input
+5. Get answers based only on your uploaded documents
+6. View source citations for each answer
+
+### Chat Only Mode
+1. Select "Chat Only" from the mode selector
+2. Choose your preferred model from the dropdown
+3. Start chatting directly with the AI
+4. No file upload required
+
+### AI Council Mode
+1. Select "AI Council" from the mode selector
+2. Choose at least 2 models to participate in the council
+3. Adjust discussion rounds (1-3) using the slider
+4. Optionally upload documents for RAG-based council discussions
+5. Ask questions and see how different models respond
+6. View the consensus summary highlighting agreements and differences
+
+**Council Features:**
+- Each model provides an independent response
+- Models can see and respond to each other's answers in multi-round discussions
+- Consensus summary shows points of agreement and alternative perspectives
+- Works with or without uploaded documents
 
 4. **Change models**
-   - Select different models from the sidebar dropdown
+   - Select different models from the sidebar dropdown (RAG Mode and Chat Only)
+   - For AI Council, select multiple models to participate
    - Supports: llama3, mistral, qwen2.5, phi-3
 
 5. **Clear database**
@@ -99,9 +137,10 @@ A fully open-source, offline-capable Retrieval-Augmented Generation (RAG) applic
 ```
 rag_ollama/
 │
-├── app.py                    # Streamlit UI
+├── app.py                    # Streamlit UI with multi-mode support
 ├── ingest.py                 # File ingestion & embeddings
 ├── rag.py                    # Retrieval + QA chain
+├── council_rag.py            # AI Council multi-model discussion
 ├── requirements.txt          # Python dependencies
 ├── .gitignore               # Git ignore rules
 │
